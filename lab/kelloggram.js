@@ -71,4 +71,120 @@ window.addEventListener('DOMContentLoaded', async function(event) {
   //   gets added in what seems to be a somewhat "random" order (but 
   //   it's the same "random" order every time we refresh). Why is that?
   //   How can we remedy? (HINT: involves a timestamp – see reference)
+  let form = document.querySelector('form') 
+  form.addEventListener('submit', async function(event) {
+    event.preventDefault()
+    console.log('photo posted')
+
+    let username = document.querySelector('#username').value
+    console.log(username)
+
+    let imageUrl = document.querySelector('#image-url').value
+    console.log(imageUrl)
+
+    await db.collection('posts').add({username: username, imageUrl: imageUrl, likes: 0})
+    
+  })
+  let postSnapshot = await db.collection('PostsW6Lab').get()
+  console.log(postSnapshot.size)
+
+  let posts = postSnapshot.docs
+  console.log(posts)
+
+  for(let i = 0; i <posts.length; i++){
+    let post = posts[i]
+    let postId = post.id
+    let postData = post.data()
+    let postUsername = postData.username
+    let postImageUrl = postData.imageUrl
+    //console.log(postUsername)
+
+    let postLikes=postData.likes
+    
+    let postHTML = document.querySelector('.posts')
+    postHTML.insertAdjacentHTML('beforeend', `
+      <div class="post-${postId} md:mt-16 mt-8 space-y-8">
+        <div class="md:mx-0 mx-4">
+          <span class="font-bold text-xl">${postUsername}</span>
+        </div>
+  
+        <div>
+          <img src="${postImageUrl}" class="w-full">
+        </div>
+   
+        <div class="text-3xl md:mx-0 mx-4">
+          <button class="like-button">❤️</button>
+          <span class="likes">${postLikes}</span>
+        </div>
+      </div>
+    `)
+
+  }
+ 
+})
+
+window.addEventListener('DOMContentLoaded', async function(event) {
+
+  document.querySelector('form').addEventListener('submit', async function(event) {
+    event.preventDefault()
+    let postUsername = document.querySelector('#username').value
+    let postImageUrl = document.querySelector('#image-url').value
+
+    await db.collection('posts').add({ username: postUsername, imageUrl: postImageUrl, likes: 0 })
+  })
+
+  let querySnapshot = await db.collection('posts').get()
+  let posts = querySnapshot.docs
+  
+  for (let i=0; i<posts.length; i++) {  
+    let postId = posts[i].id
+    let postData = posts[i].data()
+    let postUsername = postData.username
+    let postImageUrl = postData.imageUrl
+    
+    // Step 3: Implement the "like" button
+
+    // uniquely identify each like button by adding a class post-* to the parent div
+    document.querySelector('.posts').insertAdjacentHTML('beforeend', `
+      <div class="post-${postId} md:mt-16 mt-8 space-y-8">
+        <div class="md:mx-0 mx-4">
+          <span class="font-bold text-xl">${postUsername}</span>
+        </div>
+    
+        <div>
+          <img src="${postImageUrl}" class="w-full">
+        </div>
+    
+        <div class="text-3xl md:mx-0 mx-4">
+          <button class="like-button">❤️</button>
+          <span class="likes">0</span>
+        </div>
+      </div>
+    `)
+    
+    // attach an event listener to the specific like button using the .post-* selector
+    document.querySelector(`.post-${postId} .like-button`).addEventListener('click', async function(event) {
+      event.preventDefault()
+      
+      // ensure that each like button click is unique by logging the output of the clicked postId
+      console.log(`post ${postId} like button clicked!`)
+      
+      // get the existing number of likes from the "likes" element
+      let existingNumberOfLikes = document.querySelector(`.post-${postId} .likes`).innerHTML
+      
+      // increment the number of likes (converting to an Integer first) by 1
+      let newNumberOfLikes = parseInt(existingNumberOfLikes) + 1
+      
+      // modify the number of likes displayed in the html
+      document.querySelector(`.post-${postId} .likes`).innerHTML = newNumberOfLikes
+      
+      // update the number of likes for the given post in the Firestore collection using .update()
+      await db.collection('posts').doc(postId).update({ likes: newNumberOfLikes })
+      
+      // or, alternatively use a firestore function (see "Common Use-Cases: Timestamp and Incrementing Values" in the reference)
+      // await db.collection('posts').doc(postId).update({
+      //   likes: firebase.firestore.FieldValue.increment(1)
+      // })
+    })
+  }
 })
